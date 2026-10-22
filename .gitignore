@@ -49,3 +49,5 @@ local-*
 # Ignore cache directories
 .cache/
 cache/
+
+__pycache__/
