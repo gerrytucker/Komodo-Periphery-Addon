@@ -21,6 +21,10 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(c['private_key'], 'file:/data/komodo/keys/periphery.key')
         self.assertNotIn('core_public_keys', c)  # use persisted Core trust, not an empty allowlist
 
+    def test_core_url_trailing_slash(self):
+        c = generate(dict(core_url="https://core.example.com/", connect_as="HAOS"))
+        self.assertEqual(c["core_addresses"], ["https://core.example.com"])
+
     def test_restart_without_onboarding(self):
         c = generate(dict(core_url='http://192.0.2.10:9120', connect_as='HAOS'))
         self.assertNotIn('onboarding_key', c)
