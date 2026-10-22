@@ -1,209 +1,82 @@
-# Home Assistant Add-on: Komodo Periphery
+# Komodo Periphery for Home Assistant OS
 
-[![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE)
+This fork of [cgfm/Komodo-Periphery-Addon](https://github.com/cgfm/Komodo-Periphery-Addon)
+adds Komodo v2 onboarding and persistent authentication. Add-on version **2.1.1**
+bundles **Periphery 2.3.3**. The binary is pinned for reproducible installs;
+future upstream changes must be reviewed and merged into this fork.
 
-![Supports amd64 Architecture][amd64-shield]
+## Install
 
-_Komodo Periphery Server - Manages containers on remote servers_
+In Home Assistant, open Settings → Apps → Install app → ⋮ → Repositories and add:
 
-![banner][banner-image]
-
-## About
-
-This Home Assistant Add-on provides the Komodo Periphery server, which allows you to manage Docker containers on remote servers through the Komodo platform. The Periphery server acts as an agent that connects to a Komodo Core server and executes container management tasks.
-
-**Note:** This add-on automatically uses the latest stable version of Komodo Periphery from the official upstream repository. The add-on version number (2.x) is independent of the underlying Komodo Periphery version to provide clear versioning for the Home Assistant integration.
-
-## Features
-
-- 🐳 **Docker Container Management**: Full Docker container lifecycle management
-- 🔗 **Core Connection**: Seamless connection to Komodo Core servers
-- 📊 **Container Statistics**: Real-time monitoring of container performance
-- 🔒 **Secure Authentication**: Support for passkey-based authentication
-- 📁 **Stack Management**: Deploy and manage Docker Compose stacks
-- 🏗️ **Build Support**: Build Docker images from repositories
-- 🌐 **SSL Support**: Optional SSL/TLS encryption
-- 📋 **Repository Management**: Git repository integration
-
-## Installation
-
-### Quick Installation
-
-[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fcgfm%2FKomodo-Periphery-Addon)
-
-### Manual Installation
-
-1. Navigate in your Home Assistant frontend to **Settings** → **Add-ons** → **Add-on Store**.
-2. Click the 3-dots menu at upper right **...** → **Repositories** and add this repository URL:
-   ```
-   https://github.com/cgfm/Komodo-Periphery-Addon
-   ```
-3. Find the "Komodo Periphery" add-on and click it.
-4. Click on the "INSTALL" button.
-
-## How to use
-
-### Basic Configuration
-
-The most common configuration connects this Periphery to a remote Komodo Core server:
-
-```yaml
-core_url: "ws://your-core-server:9120"
-monitoring_interval: "30-sec"
-container_stats_interval: "1-min"
-ssl_enabled: false
+```
+https://github.com/gerrytucker/Komodo-Periphery-Addon
 ```
 
-### Standalone Mode
+Install the app from this repository. Stop the original app first to avoid a
+port conflict. A different repository has separate app data: existing keys are
+not automatically transferred. Do not run both as the same Komodo server.
 
-For standalone operation with passkey authentication:
+## Connect to Komodo (recommended: outbound)
+
+1. In Komodo Core, open Settings → Onboarding and create a short-lived key.
+2. Configure the app with the example below, using your Core address and key.
+3. Save and start the app. Check the log and confirm the server is connected in
+   Komodo. You do not need to manually create the server first.
+4. After successful onboarding, clear `onboarding_key` and restart the app.
+   Confirm it reconnects before enabling Start on boot / Watchdog.
 
 ```yaml
-passkey: "your-secure-passkey"
+core_url: "https://komodo.example.com"
+connect_as: "homeassistant"
+onboarding_key: "PASTE_YOUR_ONBOARDING_KEY_HERE"
+core_public_keys: []
+passkey: ""
+ssl_enabled: true
+logging_level: "info"
+disable_terminals: true
+disable_container_exec: true
 monitoring_interval: "30-sec"
 container_stats_interval: "1-min"
-ssl_enabled: true
-```
-
-### Advanced Configuration
-
-```yaml
-core_url: "wss://core.example.com:9120"
-passkey: "optional-additional-security"
-monitoring_interval: "1-min"
-container_stats_interval: "5-min"
-ssl_enabled: true
 stack_directory: "/share/komodo/stacks"
 repo_directory: "/share/komodo/repos"
 build_directory: "/share/komodo/builds"
-disable_terminals: false
-disable_container_exec: false
+include_disk_mounts: []
+exclude_disk_mounts: ["/dev", "/proc", "/sys"]
 ```
 
-## Configuration
+Use an HTTP(S) origin without a path; legacy `ws://` and `wss://` values are
+normalized. The Core address must be reachable from HAOS. Reverse proxies must
+forward WebSockets and must not interpose an interactive login page.
+`connect_as` must be unique and remain unchanged after onboarding.
 
-### Option: `core_url` (optional)
+Outbound mode disables the inbound listener, so port 8120 is not required.
+`ssl_enabled` applies to the inbound listener only; HTTPS Core certificate
+validation stays enabled. Keys and learned Core trust are stored under
+`/data/komodo/keys`, surviving app restarts and updates (not uninstalling).
+Include the app in Home Assistant backups to preserve them.
 
-WebSocket URL of the Komodo Core server to connect to. When specified, this Periphery will operate in "Core Connection Mode" and connect to the specified Core server.
+## Inbound / legacy connections
 
-**Format**: `ws://hostname:port` or `wss://hostname:port` for SSL
+Leave `core_url` empty and set `core_public_keys` to the Core public key(s).
+Configure Core to reach the HAOS IP on the mapped port 8120. A legacy `passkey`
+is supported for older Core setups. Without either authentication method the
+app refuses to start. Credentials are never printed by the startup script.
+Do not paste an onboarding key into the legacy passkey field.
 
-### Option: `passkey` (optional)
+## HAOS scope
 
-Authentication passkey for securing access to the Periphery server. Required for standalone mode, optional for core connection mode.
+Use Home Assistant to update and manage Supervisor-owned apps and containers.
+Periphery has Docker access; disabling terminals does not make it read-only.
+Containerized host statistics and filesystem access are limited to what HAOS
+exposes to this app. This is not a general-purpose HAOS Docker host replacement.
 
-### Option: `monitoring_interval`
+## Development / validation
 
-Interval for system monitoring tasks.
+Run `python3 -m unittest discover -s tests -v`, `bash -n komodo-periphery/rootfs/run.sh`,
+and `git diff --check`. Tests require jq. Build the image from `komodo-periphery/`
+with Docker before releasing. The health check measures process liveness, not
+Core connectivity; check connection status in Komodo.
 
-**Default**: `30-sec`
-**Valid values**: `10-sec`, `30-sec`, `1-min`, `5-min`, `10-min`
-
-### Option: `container_stats_interval`
-
-Interval for collecting container statistics.
-
-**Default**: `1-min`
-**Valid values**: `30-sec`, `1-min`, `5-min`, `10-min`
-
-### Option: `ssl_enabled`
-
-Enable SSL/TLS encryption for the Periphery server.
-
-**Default**: `false`
-
-### Option: `stack_directory`
-
-Directory path for storing Docker Compose stacks.
-
-**Default**: `/share/komodo/stacks`
-
-### Option: `repo_directory`
-
-Directory path for storing Git repositories.
-
-**Default**: `/share/komodo/repos`
-
-### Option: `build_directory`
-
-Directory path for Docker build contexts.
-
-**Default**: `/share/komodo/builds`
-
-### Option: `disable_terminals`
-
-Disable terminal access functionality.
-
-**Default**: `false`
-
-### Option: `disable_container_exec`
-
-Disable container exec functionality.
-
-**Default**: `false`
-
-## Network Requirements
-
-- **Port 8120**: Komodo Periphery web interface and API
-- **Docker Socket**: Access to `/var/run/docker.sock` for container management
-- **Outbound Connection**: To Komodo Core server (if configured)
-
-## Known Issues and Limitations
-
-- The add-on requires access to the Docker socket
-- SSL certificates must be manually configured if SSL is enabled
-- Some container statistics require privileged access
-
-## Support
-
-Got questions?
-
-You could [open an issue here][issue] GitHub.
-
-## Contributing
-
-This is an active open-source project. We are always open to people who want to
-use the code or contribute to it.
-
-We have set up a separate document containing our
-[contribution guidelines](.github/CONTRIBUTING.md).
-
-Thank you for being involved! :heart_eyes:
-
-## License
-
-MIT License
-
-Copyright (c) 2024-2025
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
-[banner-image]: https://raw.githubusercontent.com/cgfm/Komodo-Periphery-Addon/refs/heads/main/images/banner.png
-[commits-shield]: https://img.shields.io/github/commit-activity/y/cgfm/Komodo-Periphery-Addon.svg
-[commits]: https://github.com/cgfm/Komodo-Periphery-Addon/commits/main
-[contributors]: https://github.com/cgfm/Komodo-Periphery-Addon/graphs/contributors
-[author]: https://github.com/cgfm
-[issue]: https://github.com/cgfm/Komodo-Periphery-Addon/issues
-[license-shield]: https://img.shields.io/github/license/cgfm/Komodo-Periphery-Addon.svg
-[releases-shield]: https://img.shields.io/github/release/cgfm/Komodo-Periphery-Addon.svg
-[releases]: https://github.com/cgfm/Komodo-Periphery-Addon/releases
-
+The compatibility changes are intended for a later upstream pull request;
+no upstream submission has been made yet.
