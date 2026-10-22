@@ -12,7 +12,7 @@ else
   {
     port: 8120, bind_ip: "[::]", root_directory: "/data/komodo",
     private_key: "file:/data/komodo/keys/periphery.key",
-    core_addresses: (if $core == "" then [] else [$core] end),
+    core_addresses: (if $core == "" then [] else [($core | rtrimstr("/"))] end),
     connect_as: ($o.connect_as // ""),
     server_enabled: ($core == ""),
     ssl_enabled: (if $o | has("ssl_enabled") then $o.ssl_enabled else true end),
