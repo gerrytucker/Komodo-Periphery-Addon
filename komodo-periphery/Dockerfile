@@ -1,5 +1,5 @@
 # Multi-stage build for Komodo Periphery Home Assistant Addon
-FROM ghcr.io/moghtech/komodo-periphery:latest AS periphery-binary
+FROM ghcr.io/moghtech/komodo-periphery:2.3.3 AS periphery-binary
 
 # Use Debian bookworm for native glibc compatibility and better security
 FROM debian:bookworm-slim
@@ -8,6 +8,7 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     bash \
     jq \
+    git \
     curl \
     wget \
     netcat-openbsd \
@@ -79,8 +80,9 @@ RUN \
 # Set proper permissions for run script
 RUN chmod +x /run.sh
 
-# Create health check script
-RUN echo '#!/bin/bash\ncurl -k -s --max-time 5 https://localhost:8120/health || curl -k -s --max-time 5 https://localhost:8120/ || exit 1' > /health.sh \
+# Outbound mode does not start an HTTP listener. Check process liveness only;
+# connection health is reported by Komodo Core.
+RUN printf '#!/bin/sh\nexec pgrep -x periphery >/dev/null\n' > /health.sh \
     && chmod +x /health.sh
 
 # Set up s6-overlay services for komodo-periphery
