@@ -1,5 +1,3 @@
-# https://developers.home-assistant.io/docs/add-ons/repository#repository-configuration
-
-name: Komodo Periphery Add-on Repository
-url: https://github.com/cgfm/Komodo-Periphery-Addon
-maintainer: cgfm <o6arumdm@addy.io>
+name: Komodo Periphery (Gerry fork)
+url: https://github.com/gerrytucker/Komodo-Periphery-Addon
+maintainer: Gerry Tucker
