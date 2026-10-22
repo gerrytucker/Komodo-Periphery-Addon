@@ -1,6 +1,6 @@
 name: "Komodo Periphery"
 description: "Komodo Periphery Server - Manages containers on remote servers"
-version: "2.1.0"
+version: "2.1.1"
 slug: "komodo-periphery"
 init: false
 arch:
@@ -24,6 +24,9 @@ map:
   - ssl:rw
 options:
   core_url: ""
+  connect_as: "homeassistant"
+  onboarding_key: ""
+  core_public_keys: []
   passkey: ""
   ssl_enabled: true
   logging_level: "info"
@@ -38,6 +41,10 @@ options:
   exclude_disk_mounts: ["/dev", "/proc", "/sys"]
 schema:
   core_url: str?
+  connect_as: str?
+  onboarding_key: password?
+  core_public_keys:
+    - str
   passkey: password?
   ssl_enabled: bool
   logging_level: list(trace|debug|info|warn|error)?
