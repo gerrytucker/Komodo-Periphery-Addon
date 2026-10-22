@@ -1,3 +1,12 @@
+# 2.1.1
+
+- Wire Core URL, server name, onboarding key and trusted public keys into Periphery v2.
+- Persist Noise keys, Core trust and TLS certificates in app data.
+- Load generated JSON config explicitly and preserve process signals/exit status.
+- Stop logging secrets and reject unauthenticated inbound startup.
+- Fix container terminal option and outbound-mode health check.
+- Pin Periphery to 2.3.3 and include Git for repository operations.
+
 ## What's changed
 
 ## Version 2.1.0
