@@ -1,3 +1,7 @@
+# 2.1.2
+
+- Bumped Periphery to 2.3.4
+  
 # 2.1.1
 
 - Wire Core URL, server name, onboarding key and trusted public keys into Periphery v2.
