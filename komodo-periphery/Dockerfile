@@ -1,5 +1,5 @@
 # Multi-stage build for Komodo Periphery Home Assistant Addon
-FROM ghcr.io/moghtech/komodo-periphery:2.3.3 AS periphery-binary
+FROM ghcr.io/moghtech/komodo-periphery:2.3.4 AS periphery-binary
 
 # Use Debian bookworm for native glibc compatibility and better security
 FROM debian:bookworm-slim
